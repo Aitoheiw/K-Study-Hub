@@ -28,23 +28,23 @@ export default function HistoryPanel({
     );
   }
 
-  function clear() {
-    setHistory([]);
-  }
-
   function removeItem(index: number) {
     const next = history.filter((_, i) => i !== index);
     setHistory(next);
   }
+
+  // Only show last 5 items on homepage
+  const displayedHistory = history.slice(0, 5);
+  const hasMore = history.length > 5;
 
   return (
     <section className="section-card">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-lg">📜 Historique</h2>
         {history.length > 0 && (
-          <button onClick={clear} className="btn-secondary text-sm">
-            Effacer tout
-          </button>
+          <Link href="/history" className="btn-secondary text-sm">
+            Voir tout ({history.length})
+          </Link>
         )}
       </div>
 
@@ -54,7 +54,7 @@ export default function HistoryPanel({
         </p>
       ) : (
         <ul className="space-y-2">
-          {history.slice(0, 10).map((item, idx) => (
+          {displayedHistory.map((item, idx) => (
             <li
               key={`${item.at}-${idx}`}
               className="flex items-center gap-3 text-sm animate-fade-in"

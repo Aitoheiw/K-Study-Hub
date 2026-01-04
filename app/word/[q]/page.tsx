@@ -57,7 +57,7 @@ export default async function WordPage(props: {
             </div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+              className="inline-flex items-center gap-2 text-zinc200 hover:text-[var(--accent)] transition-colors"
             >
               ← Retour à la recherche
             </Link>

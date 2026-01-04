@@ -17,7 +17,7 @@ export default function QuizPage() {
           </div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+            className="inline-flex items-center gap-2 text-zinc200 hover:text-[var(--accent)] transition-colors"
           >
             ← Retour au dictionnaire
           </Link>

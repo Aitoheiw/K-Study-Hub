@@ -8,7 +8,6 @@ import { useLocalStorageState } from "@/lib/useLocalStorageState";
 import { HistoryItem } from "@/types/history";
 import { Entry } from "@/types/krdict";
 import Link from "next/link";
-import QuickQuiz from "@/components/QuickQuiz";
 import ThemeToggle from "@/components/ThemeToggle";
 
 type Direction = "ko-fr" | "fr-ko";
@@ -17,6 +16,7 @@ export default function HomePage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResults, setShowResults] = useState(true);
 
   // Load direction preference from localStorage
   const {
@@ -175,11 +175,28 @@ export default function HomePage() {
         {/* Results */}
         {!loading && !error && entries.length > 0 && (
           <div className="animate-fade-in">
-            <p className="text-sm text-[var(--text-muted)] mb-4">
-              {entries.length} résultat{entries.length > 1 ? "s" : ""} trouvé
-              {entries.length > 1 ? "s" : ""}
-            </p>
-            <ResultList entries={entries} />
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-[var(--text-muted)]">
+                {entries.length} résultat{entries.length > 1 ? "s" : ""} trouvé
+                {entries.length > 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowResults(!showResults)}
+                  className="btn-secondary text-sm"
+                >
+                  {showResults ? "▲ Masquer" : "▼ Afficher"}
+                </button>
+                <button
+                  onClick={() => setEntries([])}
+                  className="btn-secondary text-sm text-red-400 hover:text-red-300"
+                  title="Effacer les résultats"
+                >
+                  ✕ Reset
+                </button>
+              </div>
+            </div>
+            {showResults && <ResultList entries={entries} />}
           </div>
         )}
 
@@ -190,8 +207,22 @@ export default function HomePage() {
           hydrated={hydrated}
         />
 
-        {/* Quick Quiz Section */}
-        <QuickQuiz />
+        {/* Quiz CTA Section */}
+        <section className="section-card p-6 text-center space-y-4">
+          <h2 className="text-2xl font-bold gradient-text">
+            🎯 Teste tes connaissances
+          </h2>
+          <p className="text-[var(--text-secondary)]">
+            Entraîne-toi avec notre quiz interactif basé sur tes recherches et
+            favoris !
+          </p>
+          <Link
+            href="/quiz"
+            className="btn-primary inline-block text-lg px-8 py-3"
+          >
+            Lancer le Quiz
+          </Link>
+        </section>
 
         {/* Footer */}
         <footer className="text-center text-sm text-[var(--text-muted)] pt-8 space-y-3">
