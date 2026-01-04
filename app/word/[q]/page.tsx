@@ -3,12 +3,25 @@ import { notFound } from "next/navigation";
 import FavoriteButton from "@/components/FavoriteButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Entry, Sense } from "@/types/krdict";
+import { headers } from "next/headers";
 
 type Direction = "ko-fr" | "fr-ko";
 
+function getBaseUrl(): string {
+  // On server-side, try to get the host from headers
+  // This works on Vercel and other deployments
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  return "http://localhost:3000";
+}
+
 async function fetchWord(q: string, dir: Direction): Promise<Entry[] | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = getBaseUrl();
     const res = await fetch(
       `${baseUrl}/api/krdict/search?q=${encodeURIComponent(q)}&dir=${dir}`,
       { cache: "no-store" }
