@@ -10,6 +10,88 @@ function normalize(s: string) {
     .toLowerCase();
 }
 
+// Calculate relevance score for sorting results
+function calculateRelevanceScore(
+  entry: KrdictEntry,
+  query: string,
+  direction: Direction
+): number {
+  let score = 0;
+  const qNorm = normalize(query);
+  const wordNorm = normalize(entry.word);
+
+  // Exact match is highest priority
+  if (wordNorm === qNorm) {
+    score += 100;
+  }
+
+  // Word starts with query
+  if (wordNorm.startsWith(qNorm)) {
+    score += 30;
+  }
+
+  // Query starts with word (word is a prefix of query)
+  if (qNorm.startsWith(wordNorm)) {
+    score += 20;
+  }
+
+  // Shorter words tend to be base forms, not derivatives
+  // Give bonus for shorter words (max 20 points for 1-2 char words)
+  const lengthBonus = Math.max(0, 20 - entry.word.length * 2);
+  score += lengthBonus;
+
+  // For FR→KO: boost if French translation matches exactly
+  if (direction === "fr-ko") {
+    for (const sense of entry.senses) {
+      const transWord = sense.translation?.word
+        ? normalize(sense.translation.word)
+        : "";
+      const transDef = sense.translation?.definition
+        ? normalize(sense.translation.definition)
+        : "";
+
+      // Exact translation match
+      if (transWord === qNorm) {
+        score += 50;
+        break;
+      }
+      // Translation starts with query
+      if (transWord.startsWith(qNorm)) {
+        score += 25;
+      }
+      // Query found in translation word
+      if (transWord.includes(qNorm)) {
+        score += 15;
+      }
+      // Query found in translation definition
+      if (transDef.includes(qNorm)) {
+        score += 5;
+      }
+    }
+  }
+
+  // Boost common word indicators (if word is marked as basic/common)
+  // KRDict sometimes includes level info - basic level words get priority
+  if (entry.word.length <= 3) {
+    score += 10;
+  }
+
+  return score;
+}
+
+// Sort entries by relevance score
+function sortByRelevance(
+  entries: KrdictEntry[],
+  query: string,
+  direction: Direction
+): KrdictEntry[] {
+  return [...entries].sort((a, b) => {
+    const scoreA = calculateRelevanceScore(a, query, direction);
+    const scoreB = calculateRelevanceScore(b, query, direction);
+    return scoreB - scoreA; // Higher score first
+  });
+}
+
 // Translate French to Korean using MyMemory API (free, no API key required)
 async function translateFrenchToKorean(text: string): Promise<string | null> {
   try {
@@ -120,6 +202,9 @@ export async function GET(request: Request) {
         );
       }
       entries = parseKrdictXml(r.xml);
+
+      // Sort by relevance
+      entries = sortByRelevance(entries, q, dir);
     } else {
       // FR→KO: Search for French word in translations
       let raw: KrdictEntry[] = [];
@@ -217,6 +302,9 @@ export async function GET(request: Request) {
         seen.add(e.targetCode);
         return true;
       });
+
+      // Sort by relevance
+      entries = sortByRelevance(entries, q, dir);
     }
 
     return NextResponse.json({
