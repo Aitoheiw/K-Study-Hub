@@ -4,11 +4,13 @@ import FavoriteButton from "@/components/FavoriteButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Entry, Sense } from "@/types/krdict";
 
-async function fetchWord(q: string): Promise<Entry[] | null> {
+type Direction = "ko-fr" | "fr-ko";
+
+async function fetchWord(q: string, dir: Direction): Promise<Entry[] | null> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const res = await fetch(
-      `${baseUrl}/api/krdict/search?q=${encodeURIComponent(q)}&dir=ko-fr`,
+      `${baseUrl}/api/krdict/search?q=${encodeURIComponent(q)}&dir=${dir}`,
       { cache: "no-store" }
     );
 
@@ -24,10 +26,13 @@ async function fetchWord(q: string): Promise<Entry[] | null> {
 
 export default async function WordPage(props: {
   params: Promise<{ q: string }>;
+  searchParams: Promise<{ dir?: string }>;
 }) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const decodedWord = decodeURIComponent(params.q);
-  const entries = await fetchWord(decodedWord);
+  const direction: Direction = searchParams.dir === "fr-ko" ? "fr-ko" : "ko-fr";
+  const entries = await fetchWord(decodedWord, direction);
 
   if (!entries || entries.length === 0) {
     return (

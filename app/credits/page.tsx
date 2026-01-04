@@ -101,6 +101,53 @@ export default function CreditsPage() {
           </ul>
         </section>
 
+        <section className="section-card p-6 space-y-4">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            🌐 Service de traduction
+          </h2>
+          <p className="text-[var(--text-secondary)] leading-relaxed">
+            La fonctionnalité de recherche Français → Coréen utilise l'API
+            gratuite{" "}
+            <a
+              href="https://mymemory.translated.net/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent)] font-medium hover:underline"
+            >
+              MyMemory
+            </a>{" "}
+            pour traduire les mots français en coréen avant d'interroger le
+            dictionnaire KRDict.
+          </p>
+        </section>
+
+        <section className="section-card p-6 space-y-4 border-amber-500/30">
+          <h2 className="text-xl font-semibold flex items-center gap-2 text-amber-400">
+            ⚠️ Note importante
+          </h2>
+          <p className="text-[var(--text-secondary)] leading-relaxed">
+            K-Study Hub est un{" "}
+            <strong className="text-[var(--text-primary)]">
+              projet indépendant et gratuit
+            </strong>
+            . En tant que tel, nous utilisons des APIs gratuites qui sont
+            soumises à des{" "}
+            <strong className="text-[var(--text-primary)]">
+              quotas journaliers
+            </strong>
+            .
+          </p>
+          <p className="text-[var(--text-secondary)] leading-relaxed">
+            Il est donc possible que certaines fonctionnalités (notamment la
+            recherche FR → KO) soient{" "}
+            <strong className="text-amber-400">
+              temporairement indisponibles
+            </strong>{" "}
+            si les limites quotidiennes sont atteintes. Dans ce cas, les
+            services seront automatiquement rétablis le lendemain.
+          </p>
+        </section>
+
         <footer className="text-center text-sm text-zinc-200 pt-4">
           <p>Fait avec 💜 pour les apprenants du coréen</p>
         </footer>

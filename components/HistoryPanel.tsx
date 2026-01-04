@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useLocalStorageState } from "@/lib/useLocalStorageState";
 import { HistoryItem } from "@/types/history";
 
-export default function HistoryPanel() {
-  const {
-    state: history,
-    setState: setHistory,
-    hydrated,
-  } = useLocalStorageState<HistoryItem[]>("krdict:history", []);
+type HistoryPanelProps = {
+  history: HistoryItem[];
+  setHistory: (history: HistoryItem[]) => void;
+  hydrated: boolean;
+};
 
+export default function HistoryPanel({
+  history,
+  setHistory,
+  hydrated,
+}: HistoryPanelProps) {
   if (!hydrated) {
     return (
       <section className="section-card">
@@ -29,13 +32,18 @@ export default function HistoryPanel() {
     setHistory([]);
   }
 
+  function removeItem(index: number) {
+    const next = history.filter((_, i) => i !== index);
+    setHistory(next);
+  }
+
   return (
     <section className="section-card">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-lg">📜 Historique</h2>
         {history.length > 0 && (
           <button onClick={clear} className="btn-secondary text-sm">
-            Effacer
+            Effacer tout
           </button>
         )}
       </div>
@@ -60,12 +68,19 @@ export default function HistoryPanel() {
                 {item.dir === "ko-fr" ? "KO→FR" : "FR→KO"}
               </span>
               <Link
-                href={`/word/${encodeURIComponent(item.q)}`}
+                href={`/word/${encodeURIComponent(item.q)}?dir=${item.dir}`}
                 className="link-accent font-medium"
               >
                 {item.q}
               </Link>
-              <span className="text-[var(--text-muted)] text-xs ml-auto">
+              <button
+                onClick={() => removeItem(idx)}
+                className="text-[var(--text-muted)] hover:text-red-500 transition-colors ml-auto"
+                title="Supprimer"
+              >
+                ✕
+              </button>
+              <span className="text-[var(--text-muted)] text-xs">
                 {new Date(item.at).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
                   minute: "2-digit",

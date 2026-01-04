@@ -101,10 +101,19 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen py-8 px-4">
+    <main className="min-h-screen py-8 px-4 relative">
+      {/* Theme Toggle - Fixed position on desktop, relative on mobile */}
+      <div className="fixed right-4 top-4 z-50 hidden sm:block">
+        <ThemeToggle />
+      </div>
+
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
-        <header className="text-center space-y-4 relative">
+        <header className="text-center space-y-4">
+          {/* Mobile Theme Toggle */}
+          <div className="flex justify-end sm:hidden mb-2">
+            <ThemeToggle />
+          </div>
           <h1 className="text-4xl sm:text-5xl font-bold gradient-text">
             K-Study Hub
           </h1>
@@ -175,7 +184,11 @@ export default function HomePage() {
         )}
 
         {/* History */}
-        <HistoryPanel />
+        <HistoryPanel
+          history={history}
+          setHistory={setHistory}
+          hydrated={hydrated}
+        />
 
         {/* Quick Quiz Section */}
         <QuickQuiz />
@@ -202,9 +215,6 @@ export default function HomePage() {
 
           <p>Source : KRDict – CC BY-SA 2.0 KR</p>
         </footer>
-      </div>
-      <div className="absolute right-0 top-8">
-        <ThemeToggle />
       </div>
     </main>
   );

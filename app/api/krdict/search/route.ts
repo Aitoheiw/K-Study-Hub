@@ -10,6 +10,38 @@ function normalize(s: string) {
     .toLowerCase();
 }
 
+// Translate French to Korean using MyMemory API (free, no API key required)
+async function translateFrenchToKorean(text: string): Promise<string | null> {
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+      text
+    )}&langpair=fr|ko`;
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (!res.ok) {
+      console.warn("MyMemory API error:", res.status);
+      return null;
+    }
+
+    const data = await res.json();
+
+    // Check if translation was successful
+    if (data.responseStatus === 200 && data.responseData?.translatedText) {
+      const translated = data.responseData.translatedText;
+      // MyMemory returns the original text if it can't translate
+      if (translated.toLowerCase() === text.toLowerCase()) {
+        return null;
+      }
+      return translated;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("Translation error:", error);
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -90,23 +122,22 @@ export async function GET(request: Request) {
       entries = parseKrdictXml(r.xml);
     } else {
       // FR→KO: Search for French word in translations
-      // Strategy: Use "trans_word" part to search in translation words
-      // And also try searching common Korean words that might have this French translation
+      let raw: KrdictEntry[] = [];
+      let r;
 
-      // First, try to search using the translated word part
-      let r = await callKrdict({
+      // Strategy 1: Search in KRDict's French translation fields
+      r = await callKrdict({
         ...withFrenchTranslations,
         q,
         part: "trans_word", // Search in translation words
         method: "include",
       });
 
-      let raw: KrdictEntry[] = [];
       if (r.ok) {
         raw = parseKrdictXml(r.xml);
       }
 
-      // If no results, try searching in translation definitions
+      // Strategy 2: If no results, try searching in translation definitions
       if (raw.length === 0) {
         r = await callKrdict({
           ...withFrenchTranslations,
@@ -119,36 +150,49 @@ export async function GET(request: Request) {
         }
       }
 
-      // If still no results, try a broader approach: fetch common words and filter
+      // Strategy 3: Use MyMemory to translate French → Korean, then search KRDict
       if (raw.length === 0) {
-        // Try to find words that might translate to the French query
-        // This is a workaround since KRDict doesn't have great FR→KO support
-        const commonKorean = getKoreanForFrench(q.toLowerCase());
+        console.log("No KRDict results, trying MyMemory translation...");
+        const koreanTranslation = await translateFrenchToKorean(q);
 
-        if (commonKorean.length > 0) {
-          for (const koWord of commonKorean.slice(0, 3)) {
+        if (koreanTranslation) {
+          console.log(`Translated "${q}" → "${koreanTranslation}"`);
+
+          // Search KRDict with the translated Korean word
+          r = await callKrdict({
+            ...withFrenchTranslations,
+            q: koreanTranslation,
+            part: "word",
+            method: "include",
+          });
+
+          if (r.ok) {
+            raw = parseKrdictXml(r.xml);
+          }
+
+          // If still no results, try exact match
+          if (raw.length === 0) {
             r = await callKrdict({
               ...withFrenchTranslations,
-              q: koWord,
+              q: koreanTranslation,
               part: "word",
               method: "exact",
             });
             if (r.ok) {
-              const found = parseKrdictXml(r.xml);
-              raw.push(...found);
+              raw = parseKrdictXml(r.xml);
             }
           }
         }
       }
 
-      if (raw.length === 0 && !r.ok) {
+      if (raw.length === 0 && r && !r.ok) {
         return NextResponse.json(
           { error: `KRDict error: ${r.status}` },
           { status: 502 }
         );
       }
 
-      // Filter entries to only include those with matching French translation
+      // Filter entries to prioritize those with matching French translation
       const qNorm = normalize(q);
       entries = raw
         .map((e) => {
@@ -193,69 +237,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
-
-// Helper function: common French-Korean word mappings for fallback
-function getKoreanForFrench(french: string): string[] {
-  const mapping: Record<string, string[]> = {
-    // Greetings
-    bonjour: ["안녕", "안녕하세요", "인사"],
-    salut: ["안녕", "여보세요"],
-    bonsoir: ["안녕하세요"],
-    merci: ["감사", "고마워", "고맙다"],
-    "au revoir": ["안녕", "안녕히"],
-    oui: ["예", "네"],
-    non: ["아니", "아니요"],
-
-    // Common words
-    amour: ["사랑", "애정"],
-    ami: ["친구", "벗"],
-    famille: ["가족", "가정"],
-    maison: ["집", "가옥"],
-    eau: ["물", "수"],
-    manger: ["먹다", "식사"],
-    boire: ["마시다"],
-    dormir: ["자다", "잠"],
-    aimer: ["사랑하다", "좋아하다"],
-    travail: ["일", "직장", "노동"],
-    ecole: ["학교"],
-    livre: ["책", "서적"],
-    musique: ["음악"],
-    film: ["영화"],
-    voiture: ["차", "자동차"],
-    temps: ["시간", "날씨"],
-    jour: ["날", "하루"],
-    nuit: ["밤", "야간"],
-    matin: ["아침"],
-    soir: ["저녁"],
-    homme: ["남자", "사람"],
-    femme: ["여자", "여성"],
-    enfant: ["아이", "어린이"],
-    pere: ["아버지", "아빠"],
-    mere: ["어머니", "엄마"],
-    frere: ["형", "오빠", "동생", "남동생"],
-    soeur: ["언니", "누나", "여동생"],
-    coeur: ["마음", "심장"],
-    vie: ["삶", "생활", "인생"],
-    mort: ["죽음", "사망"],
-    heureux: ["행복", "기쁘다"],
-    triste: ["슬프다", "슬픔"],
-    beau: ["아름답다", "예쁘다"],
-    grand: ["크다", "큰"],
-    petit: ["작다", "작은"],
-    nouveau: ["새롭다", "신"],
-    vieux: ["늙다", "오래되다"],
-    bien: ["잘", "좋다"],
-    mal: ["나쁘다", "아프다"],
-    chaud: ["덥다", "뜨겁다"],
-    froid: ["춥다", "차갑다"],
-  };
-
-  // Normalize the French word
-  const normalized = french
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-
-  return mapping[normalized] || [];
 }
